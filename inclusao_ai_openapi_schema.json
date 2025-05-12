@@ -1,0 +1,111 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Inclusão.AI",
+    "version": "1.0.0",
+    "description": "Funções psicopedagógicas e de apoio à inclusão escolar, com base em psicologia, psicopedagogia, neuropsicopedagogia e legislação brasileira."
+  },
+  "servers": [
+    {
+      "url": "https://wall1993-lab.github.io/inclusao-ai-schema"
+    }
+  ],
+  "paths": {
+    "/interpretar_laudo": {
+      "post": {
+        "operationId": "interpretar_laudo",
+        "description": "Interpreta laudos médicos, psicológicos ou psicopedagógicos para torná-los acessíveis a equipes escolares.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tipo_laudo": {
+                    "type": "string",
+                    "description": "Tipo de laudo (psicológico, psiquiátrico, psicopedagógico, etc.)"
+                  },
+                  "conteudo_laudo": {
+                    "type": "string",
+                    "description": "Texto integral ou resumo do laudo."
+                  }
+                },
+                "required": ["tipo_laudo", "conteudo_laudo"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Interpretação realizada."
+          }
+        }
+      }
+    },
+    "/propor_estrategia_inclusiva": {
+      "post": {
+        "operationId": "propor_estrategia_inclusiva",
+        "description": "Sugere estratégias inclusivas e de acolhimento baseadas no diagnóstico e na etapa escolar do estudante.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "diagnostico": {
+                    "type": "string",
+                    "description": "Condição ou necessidade do aluno (ex: TDAH, TEA, dislexia, etc.)"
+                  },
+                  "etapa_ensino": {
+                    "type": "string",
+                    "description": "Etapa da educação (Infantil, Fundamental I, II, Médio)."
+                  },
+                  "contexto": {
+                    "type": "string",
+                    "description": "Breve descrição do contexto social, familiar ou escolar do aluno."
+                  }
+                },
+                "required": ["diagnostico", "etapa_ensino"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estratégia gerada."
+          }
+        }
+      }
+    },
+    "/traduzir_termo_tecnico": {
+      "post": {
+        "operationId": "traduzir_termo_tecnico",
+        "description": "Explica termos técnicos complexos de forma acessível para a equipe escolar.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "termo": {
+                    "type": "string",
+                    "description": "Termo técnico a ser explicado."
+                  }
+                },
+                "required": ["termo"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Explicação gerada."
+          }
+        }
+      }
+    }
+  }
+}
