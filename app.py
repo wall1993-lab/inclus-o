@@ -12,6 +12,7 @@ computador).
 
 import io
 import os
+import sys
 from datetime import datetime
 
 import fitz  # PyMuPDF, so' para desenhar a previa do cartao na tela
@@ -21,7 +22,16 @@ from gerador_cartoes import gerar, parse_lista_alunos
 
 st.set_page_config(page_title="Prepara ENEM", page_icon="📝", layout="wide")
 
-PASTA_SAIDA = "saida_cartoes"
+
+def _pasta_base():
+    """Quando o programa e' o .exe empacotado, salva os arquivos ao lado
+    do proprio .exe (nao numa pasta temporaria que some depois)."""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+PASTA_SAIDA = os.path.join(_pasta_base(), "saida_cartoes")
 os.makedirs(PASTA_SAIDA, exist_ok=True)
 
 EXEMPLO_LISTA = (
