@@ -30,6 +30,13 @@ from reportlab.lib.utils import ImageReader
 NUM_QUESTOES_PADRAO = 30
 ALTERNATIVAS_PADRAO = ["A", "B", "C", "D", "E"]
 NOME_SIMULADO_PADRAO = "PREPARA ENEM"
+ORIENTACOES_PADRAO = [
+    "Use caneta preta ou azul escura.",
+    "Preencha toda a bolha, sem passar da linha.",
+    "Marque apenas uma alternativa por questao.",
+    "Nao rasure; se errar, apague bem e marque de novo.",
+    "Nao dobre nem amasse esta folha.",
+]
 
 # ----------------------------------------------------------------------
 # medidas do desenho (em pontos; 1 mm = 2.83 pontos) - NAO mudam com o
@@ -42,7 +49,8 @@ FID_TAM       = 6  * mm      # tamanho do quadrado de referencia (canto)
 RAIO_BOLHA    = 3.2 * mm     # raio das bolhas
 ESPACO_H      = 9  * mm      # distancia horizontal entre alternativas
 ESPACO_V      = 8  * mm      # distancia vertical entre questoes
-TOPO_GRADE    = ALTURA - 70 * mm   # onde a grade de bolhas comeca
+TOPO_GRADE    = ALTURA - 95 * mm  # onde a grade de bolhas comeca (deixa
+                                  # espaco acima para cabecalho + orientacoes)
 FUNDO_GRADE   = MARGEM + FID_TAM + 15 * mm  # onde a grade tem que parar
 
 
@@ -63,8 +71,10 @@ def marcas_de_referencia(c):
     return centros
 
 
-def cabecalho(c, aluno, nome_simulado, pagina_atual=1, total_paginas=1):
-    """Nome, serie, simulado e QR code com a matricula do aluno.
+def cabecalho(c, aluno, nome_simulado, bimestre="", turma="",
+              pagina_atual=1, total_paginas=1):
+    """Nome do simulado, bimestre/turma, dados do aluno e QR code com a
+    matricula.
 
     O QR grava "matricula|pagina" (ex: "2026001|1") para o leitor saber,
     de forma automatica, de quem e' a folha e qual pedaco do cartao ela
@@ -75,11 +85,19 @@ def cabecalho(c, aluno, nome_simulado, pagina_atual=1, total_paginas=1):
     c.drawString(MARGEM + 10 * mm, ALTURA - 30 * mm, nome_simulado)
 
     c.setFont("Helvetica", 11)
-    c.drawString(MARGEM + 10 * mm, ALTURA - 40 * mm, f"Aluno: {aluno['nome']}")
+    if bimestre or turma:
+        partes = []
+        if turma:
+            partes.append(f"Turma: {turma}")
+        if bimestre:
+            partes.append(f"Bimestre: {bimestre}")
+        c.drawString(MARGEM + 10 * mm, ALTURA - 38 * mm, "    ".join(partes))
+
+    c.drawString(MARGEM + 10 * mm, ALTURA - 46 * mm, f"Aluno: {aluno['nome']}")
     linha_serie = f"Serie: {aluno['serie']}    Matricula: {aluno['matricula']}"
     if total_paginas > 1:
         linha_serie += f"    Folha {pagina_atual}/{total_paginas}"
-    c.drawString(MARGEM + 10 * mm, ALTURA - 46 * mm, linha_serie)
+    c.drawString(MARGEM + 10 * mm, ALTURA - 52 * mm, linha_serie)
 
     conteudo_qr = f"{aluno['matricula']}|{pagina_atual}"
     qr = qrcode.make(conteudo_qr)
@@ -87,6 +105,43 @@ def cabecalho(c, aluno, nome_simulado, pagina_atual=1, total_paginas=1):
     lado = 22 * mm
     c.drawImage(qr_img, LARGURA - MARGEM - FID_TAM - lado - 4 * mm,
                 ALTURA - 30 * mm - lado + 6 * mm, lado, lado)
+
+
+def bloco_orientacoes(c, linhas_orientacoes):
+    """Desenha a caixa de instrucoes de preenchimento (o que a
+    coordenadora escreveu no campo 'Orientacoes') e a legenda visual de
+    bolha correta/incorreta, no espaco entre o cabecalho e a grade."""
+    topo = ALTURA - 60 * mm
+    c.setFont("Helvetica-Bold", 9)
+    c.setFillColorRGB(0, 0, 0)
+    c.drawString(MARGEM + 10 * mm, topo, "INSTRUCOES")
+
+    c.setFont("Helvetica", 8)
+    y = topo - 5 * mm
+    for linha in linhas_orientacoes:
+        if not linha.strip():
+            continue
+        c.drawString(MARGEM + 10 * mm, y, f"- {linha.strip()}")
+        y -= 4.2 * mm
+
+    # legenda: exemplo de bolha correta (preenchida) e incorreta (com X)
+    y_legenda = y - 3 * mm
+    raio_exemplo = 2.6 * mm
+
+    x1 = MARGEM + 12 * mm
+    c.setFillColorRGB(0, 0, 0)
+    c.circle(x1, y_legenda, raio_exemplo, fill=1, stroke=0)
+    c.setFont("Helvetica", 8)
+    c.drawString(x1 + 6 * mm, y_legenda - 2, "certo")
+
+    x2 = MARGEM + 40 * mm
+    c.setLineWidth(0.8)
+    c.circle(x2, y_legenda, raio_exemplo, fill=0, stroke=1)
+    c.line(x2 - raio_exemplo, y_legenda - raio_exemplo,
+           x2 + raio_exemplo, y_legenda + raio_exemplo)
+    c.line(x2 - raio_exemplo, y_legenda + raio_exemplo,
+           x2 + raio_exemplo, y_legenda - raio_exemplo)
+    c.drawString(x2 + 6 * mm, y_legenda - 2, "errado")
 
 
 def calcular_layout_pagina(alternativas):
@@ -182,12 +237,15 @@ def parse_lista_alunos(texto):
 
 
 def gerar(alunos, num_questoes=NUM_QUESTOES_PADRAO, alternativas=None,
-          nome_simulado=NOME_SIMULADO_PADRAO,
+          nome_simulado=NOME_SIMULADO_PADRAO, bimestre="", turma="",
+          orientacoes=None,
           saida_pdf="cartoes.pdf", saida_mapa="mapa_cartao.json"):
     """Gera o PDF com um cartao (uma ou mais folhas) por aluno, e o
     mapa_cartao.json que a Parte 2 (leitor) vai usar."""
     if alternativas is None:
         alternativas = list(ALTERNATIVAS_PADRAO)
+    if orientacoes is None:
+        orientacoes = list(ORIENTACOES_PADRAO)
     if not alunos:
         raise ValueError("A lista de alunos esta vazia.")
     if num_questoes < 1:
@@ -208,7 +266,8 @@ def gerar(alunos, num_questoes=NUM_QUESTOES_PADRAO, alternativas=None,
             questoes_da_pagina = list(range(primeira_questao, ultima_questao + 1))
 
             fiduciais = marcas_de_referencia(c)
-            cabecalho(c, aluno, nome_simulado, pagina, total_paginas)
+            cabecalho(c, aluno, nome_simulado, bimestre, turma, pagina, total_paginas)
+            bloco_orientacoes(c, orientacoes)
             mapa_local = grade_de_bolhas(c, alternativas, questoes_da_pagina,
                                           largura_bloco, linhas_por_coluna)
             if len(layout_bolhas_por_pagina) < pagina:
@@ -225,6 +284,9 @@ def gerar(alunos, num_questoes=NUM_QUESTOES_PADRAO, alternativas=None,
         "questoes_por_pagina": questoes_por_pagina,
         "total_paginas_por_aluno": total_paginas,
         "layout_bolhas_por_pagina": layout_bolhas_por_pagina,
+        "nome_simulado": nome_simulado,
+        "bimestre": bimestre,
+        "turma": turma,
         "alunos": [{"nome": a["nome"], "matricula": a["matricula"],
                     "serie": a["serie"]} for a in alunos],
     }

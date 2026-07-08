@@ -8,6 +8,8 @@ on:
     paths:
       - "app.py"
       - "gerador_cartoes.py"
+      - "leitor_cartoes.py"
+      - "corretor_notas.py"
       - "run_app.py"
       - "requirements.txt"
       - ".github/workflows/build-windows-exe.yml"
@@ -39,8 +41,14 @@ jobs:
           --collect-all qrcode
           --collect-all fitz
           --collect-all PIL
+          --collect-all cv2
+          --collect-all numpy
+          --collect-all pandas
+          --collect-all openpyxl
           --add-data "app.py;."
           --add-data "gerador_cartoes.py;."
+          --add-data "leitor_cartoes.py;."
+          --add-data "corretor_notas.py;."
           run_app.py
 
       - name: Testar se o executavel abre sem travar
@@ -48,7 +56,7 @@ jobs:
         run: |
           $proc = Start-Process -FilePath "dist\PreparaENEM.exe" -PassThru
           $ok = $false
-          for ($i = 0; $i -lt 12; $i++) {
+          for ($i = 0; $i -lt 18; $i++) {
             Start-Sleep -Seconds 10
             try {
               $resp = Invoke-WebRequest -Uri "http://localhost:8501" -UseBasicParsing -TimeoutSec 5

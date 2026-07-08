@@ -2,3 +2,7 @@ streamlit
 reportlab
 qrcode[pil]
 pymupdf
+opencv-python-headless
+numpy
+pandas
+openpyxl
