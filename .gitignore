@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+saida_cartoes/
+.venv/
+venv/
+build/
+dist/
+*.spec
